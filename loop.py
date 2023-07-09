@@ -17,8 +17,15 @@ def save_data_to_csv(data, filename):
         writer = csv.writer(f)
         writer.writerow(data)
 
+def read_data_from_csv(filename):
+    with open(filename) as file:
+        csvreader = csv.reader(file)
+        # for row in csvreader:
+        #     print(csvreader)
+        print(next(csvreader))
+
 def main():
-    interval = 30
+    interval = 5
 
     data = get_data()
 
@@ -31,9 +38,14 @@ def main():
         data = get_data()
 
         filename = "data.csv"
+        read_data_from_csv(filename)
 
         save_data_to_csv(data, filename)
+
+
 
 if __name__ == "__main__":
 
     main()
+    # filename = "data.csv"
+    # read_data_from_csv(filename)

@@ -8,7 +8,12 @@ def get_data():
     pymc3e.connect("192.168.1.2", 10000)
     MachineAutoMode = pymc3e.batchread_bitunits(headdevice="M310", readsize=1)
     Y1045 = pymc3e.batchread_bitunits(headdevice="Y1045", readsize=1)
-    return (MachineAutoMode, Y1045)
+
+    BilletCounter = pymc3e.batchread_wordunits(headdevice="D7000", readsize=1)
+
+    return (MachineAutoMode, Y1045, BilletCounter)
+
+ 
 
 def save_data_to_csv(data, filename):
     with open(filename, 'w', encoding='UTF8') as f:

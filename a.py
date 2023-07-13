@@ -1,26 +1,25 @@
-def split_to_8bit(decimal):
-    # convert DEC number to BIN number
-    binary = bin(decimal)[2:].zfill(16) # fill 0 to space
+import random
 
-    # split 8bit + 8bit
-    first_8bit = binary[:8]
-    second_8bit = binary[8:]
+def reposition_random_word_from_last_to_begin(string):
+  """Repositions a random word from the last to the beginning of a string.
 
-    return first_8bit, second_8bit
+  Args:
+    string: The string to reposition the word in.
 
-def convert_to_hex(binary):
-    # convert BIN number to HEX number
-    hex_value = hex(int(binary, 2))[2:].zfill(2)
+  Returns:
+    The string with the word repositioned.
+  """
 
-    return hex_value
+  words = string.split(" ")
+  random_index = random.randint(0, len(words) - 1)
+  word = words[random_index]
+  words.remove(word)
+  words.insert(0, word)
+  new_string = " ".join(words)
+  return new_string
 
-# テスト用の10進数
-decimal = 16973
 
-first_8bit, second_8bit = split_to_8bit(decimal)
-
-first_8bit_hex = convert_to_hex(first_8bit)
-second_8bit_hex = convert_to_hex(second_8bit)
-
-print("First 8 bits (hex):", first_8bit_hex)
-print("Second 8 bits (hex):", second_8bit_hex)
+if __name__ == "__main__":
+  string = "hello world world2"
+  new_string = reposition_random_word_from_last_to_begin(string)
+  print(new_string)

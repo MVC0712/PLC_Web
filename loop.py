@@ -39,11 +39,13 @@ def main():
         time.sleep(interval)
         new_data = get_data()
         old_data = queryData("SELECT date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1")
-        compare = compare_tuples(old_data, new_data)
-        if compare == False:
+        compare_t = compare_tuples(old_data, new_data)
+        if compare_t == False:
             insert_data_to_log(new_data)
-            
-        
+        compare_m = compare_mode(old_data, new_data)
+        if compare_m == False:
+            save_data = concatenateData(old_data, new_data)
+            insert_data_to_web(save_data)
 
 def connect_to_mysql(host="localhost", port=3306, user="root", password="", database="extrusion"):
     connection = mysql.connector.connect(
@@ -63,7 +65,7 @@ def queryData(sql_query):
     # for row in results:
     #     print(row)
     connection.close()
-    print(results[0])
+    return(results[0])
 
 def insert_data_to_log(data):
     connection = connect_to_mysql()
@@ -123,11 +125,17 @@ def changepos(string):
     new_string = " ".join(words)
     return new_string
 
-def compare_tuples(oldData, newData):
+def compare_mode(oldData, newData):
     oldPressMode = oldData[1]
     newPressMode = newData[1]
 
     return oldPressMode == newPressMode
+
+def compare_tuples(oldData, newData):
+    oldTuple = oldData[1:]
+    newTuple = newData[1:]
+
+    return oldTuple == newTuple
 
 def concatenateData(oldData, newData):    
     oldTime = oldData[0]
@@ -138,9 +146,10 @@ def concatenateData(oldData, newData):
     newPressMode = newData[1]
     end_billet = newData[3]
     
-    # (date_time, press_mode, die_change, billet_counter, die_name, alarm)
-    print([(oldTime, newTime, die_name, end_billet-start_billet)])
-
+    if oldPressMode == 0 and newPressMode == 1 :
+        pass
+    elif oldPressMode == 1 and newPressMode == 0:
+        return [(oldTime, newTime, die_name, end_billet-start_billet)]
 
 if __name__ == "__main__":
 

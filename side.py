@@ -24,26 +24,38 @@ def get_data():
     alarm = alarm[1:-1]
 
     return (date_time, press_mode, die_change, billet_counter, die_name, alarm)
-    # die_name = [16973, 12341, 67, 0, 0]
-    # die_name = listToString(die_name)
-    # print(die_name)
-    # return (die_name)
 
 def listToString(list):
     str = ""
     for st in list:
-        if st != 0:
-            str += hex_to_ascii(decimal_to_hex_16(st))
+        # str += st
+        str += hex_to_ascii(decimal_to_hex_16(st))
     return str
+
+def save_data_to_csv(data, filename):
+    with open(filename, 'w', encoding='UTF8') as f:
+
+        writer = csv.writer(f)
+        writer.writerow(data)
+
+def read_data_from_csv(filename):
+    with open(filename) as file:
+        csvreader = csv.reader(file)
+        # for row in csvreader:
+        #     print(csvreader)
+        print(next(csvreader))
 
 def main():
     interval = 5
     data = get_data()
     while True:
+        print(data)
         time.sleep(interval)
         data = get_data()
-        
+        filename = "data.csv"
+        read_data_from_csv(filename)
         queryData("SELECT date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1")
+        save_data_to_csv(data, filename)
 
 def compare_arrays(array1, array2):
     # array1 = [1, 2, 3, 4, 5]
@@ -75,23 +87,11 @@ def queryData(sql_query):
     connection.close()
     print(results[0])
 
-def insert_data_to_log(data):
+def insert_data_to_mysql(data):
     connection = connect_to_mysql()
     cursor = connection.cursor()
     # data = [("John Doe", 30), ("Jane Doe", 25)]
     insert_query = "INSERT INTO t_plc_web_log (date_time, press_mode, die_change, billet_counter, die_name, alarm) VALUES (%s, %s, %s, %s, %s, %s)"
-    cursor.execute(insert_query, data)
-    connection.commit()
-    id = cursor.lastrowid
-    cursor.close()
-
-    return id
-
-def insert_data_to_web(data):
-    connection = connect_to_mysql()
-    cursor = connection.cursor()
-    # data = [("John Doe", 30), ("Jane Doe", 25)]
-    insert_query = "INSERT INTO t_plc_web (start_time, end_time, die_name, billet_quantity) VALUES (%s, %s, %s, %s)"
     cursor.execute(insert_query, data)
     connection.commit()
     id = cursor.lastrowid
@@ -133,28 +133,29 @@ def changepos(string):
     new_string = " ".join(words)
     return new_string
 
-def compare_tuples(oldData, newData):
-    oldPressMode = oldData[1]
-    newPressMode = newData[1]
+def compare_tuples(tuple1, tuple2):
+    """Compares two tuples at the second and fourth value.
 
-    return oldPressMode == newPressMode
+    Args:
+    tuple1: The first tuple.
+    tuple2: The second tuple.
 
-def concatenateData(oldData, newData):    
-    start_time = oldData[0]
-    die_name = oldData[4]
-    start_billet = oldData[3]
-    end_time = newData[0]
-    end_billet = newData[3]
-    
-    print([(start_time, end_time, die_name, end_billet-start_billet)])
+    Returns:
+    True if the second and fourth values of the tuples are equal, False otherwise.
+    """
 
+    second_value_tuple1 = tuple1[1]
+    second_value_tuple2 = tuple2[1]
+    fourth_value_tuple1 = tuple1[3]
+    fourth_value_tuple2 = tuple2[3]
+
+    return second_value_tuple1 == second_value_tuple2 and fourth_value_tuple1 == fourth_value_tuple2
 
 if __name__ == "__main__":
 
     # main()
-    # get_data()
-    queryData("SELECT * FROM `m_code` WHERE 1")
-    # decimal_number = 16973
-    # hexadecimal_number = decimal_to_hex_16(decimal_number)
-    # ascii_string = hex_to_ascii(hexadecimal_number)
-    # print(ascii_string)
+    # queryData("SELECT * FROM `m_code` WHERE 1")
+    decimal_number = 16973
+    hexadecimal_number = decimal_to_hex_16(decimal_number)
+    ascii_string = hex_to_ascii(hexadecimal_number)
+    print(ascii_string)

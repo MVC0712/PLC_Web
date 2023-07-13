@@ -24,10 +24,6 @@ def get_data():
     alarm = alarm[1:-1]
 
     return (date_time, press_mode, die_change, billet_counter, die_name, alarm)
-    # die_name = [16973, 12341, 67, 0, 0]
-    # die_name = listToString(die_name)
-    # print(die_name)
-    # return (die_name)
 
 def listToString(list):
     str = ""
@@ -37,23 +33,17 @@ def listToString(list):
     return str
 
 def main():
-    interval = 5
-    data = get_data()
+    interval = 30
+    new_data = get_data()
     while True:
         time.sleep(interval)
-        data = get_data()
+        new_data = get_data()
+        old_data = queryData("SELECT date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1")
+        compare = compare_tuples(old_data, new_data)
+        if compare == False:
+            insert_data_to_log(new_data)
+            
         
-        queryData("SELECT date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1")
-
-def compare_arrays(array1, array2):
-    # array1 = [1, 2, 3, 4, 5]
-    # array2 = [1, 2, 3, 4, 5]
-    if len(array1) != len(array2):
-        return False
-    for i in range(len(array1)):
-        if array1[i] != array2[i]:
-            return False
-    return True
 
 def connect_to_mysql(host="localhost", port=3306, user="root", password="", database="extrusion"):
     connection = mysql.connector.connect(
@@ -140,13 +130,16 @@ def compare_tuples(oldData, newData):
     return oldPressMode == newPressMode
 
 def concatenateData(oldData, newData):    
-    start_time = oldData[0]
+    oldTime = oldData[0]
+    oldPressMode = oldData[1]
     die_name = oldData[4]
     start_billet = oldData[3]
-    end_time = newData[0]
+    newTime = newData[0]
+    newPressMode = newData[1]
     end_billet = newData[3]
     
-    print([(start_time, end_time, die_name, end_billet-start_billet)])
+    # (date_time, press_mode, die_change, billet_counter, die_name, alarm)
+    print([(oldTime, newTime, die_name, end_billet-start_billet)])
 
 
 if __name__ == "__main__":

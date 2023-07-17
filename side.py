@@ -17,55 +17,37 @@ def get_data():
     die_name = pymc3e.batchread_wordunits(headdevice="R395", readsize=5)
     alarm = pymc3e.batchread_wordunits(headdevice="D320", readsize=1)
     
-    press_mode = press_mode[1:-1]
-    die_change = die_change[1:-1]
-    billet_counter = billet_counter[1:-1]
+    press_mode = press_mode[0]
+    die_change = die_change[0]
+    billet_counter = billet_counter[0]
     die_name = listToString(die_name)
-    alarm = alarm[1:-1]
+    alarm = alarm[0]
 
     return (date_time, press_mode, die_change, billet_counter, die_name, alarm)
 
 def listToString(list):
     str = ""
     for st in list:
-        # str += st
-        str += hex_to_ascii(decimal_to_hex_16(st))
+        if st != 0:
+            str += hex_to_ascii(decimal_to_hex_16(st))
     return str
-
-def save_data_to_csv(data, filename):
-    with open(filename, 'w', encoding='UTF8') as f:
-
-        writer = csv.writer(f)
-        writer.writerow(data)
-
-def read_data_from_csv(filename):
-    with open(filename) as file:
-        csvreader = csv.reader(file)
-        # for row in csvreader:
-        #     print(csvreader)
-        print(next(csvreader))
 
 def main():
     interval = 5
-    data = get_data()
+    new_data = get_data()
     while True:
-        print(data)
         time.sleep(interval)
-        data = get_data()
-        filename = "data.csv"
-        read_data_from_csv(filename)
-        queryData("SELECT date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1")
-        save_data_to_csv(data, filename)
+        new_data = get_data()
+        old_data = queryData("SELECT date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1")
+        compare_t = compare_tuples(old_data, new_data)
+        if compare_t == False:
+            insert_data_to_log(new_data)
+        compare_m = compare_mode(old_data, new_data)
+        if compare_m == False:
+            save_data = concatenateData(old_data, new_data)
+            insert_data_to_web(save_data)
 
-def compare_arrays(array1, array2):
-    # array1 = [1, 2, 3, 4, 5]
-    # array2 = [1, 2, 3, 4, 5]
-    if len(array1) != len(array2):
-        return False
-    for i in range(len(array1)):
-        if array1[i] != array2[i]:
-            return False
-    return True
+        print(new_data)
 
 def connect_to_mysql(host="localhost", port=3306, user="root", password="", database="extrusion"):
     connection = mysql.connector.connect(
@@ -85,13 +67,25 @@ def queryData(sql_query):
     # for row in results:
     #     print(row)
     connection.close()
-    print(results[0])
+    return(results[0])
 
-def insert_data_to_mysql(data):
+def insert_data_to_log(data):
     connection = connect_to_mysql()
     cursor = connection.cursor()
     # data = [("John Doe", 30), ("Jane Doe", 25)]
-    insert_query = "INSERT INTO t_plc_web_log (date_time, press_mode, die_change, billet_counter, die_name, alarm) VALUES (%s, %s, %s, %s, %s, %s)"
+    insert_query = "INSERT INTO t_plc_web_log (date_time, press_mode, die_change, billet_counter, die_name, alarm) VALUES ('"+ str(data[0]) +"','"+str(data[1])+"','"+str(data[2])+"', '"+str(data[3])+"', '"+str(data[4])+"', '"+str(data[5])+"')"   
+    cursor.execute(insert_query)
+    connection.commit()
+    id = cursor.lastrowid
+    cursor.close()
+
+    return id
+
+def insert_data_to_web(data):
+    connection = connect_to_mysql()
+    cursor = connection.cursor()
+    # data = [("John Doe", 30), ("Jane Doe", 25)]
+    insert_query = "INSERT INTO t_plc_web (start_time, end_time, die_name, billet_quantity) VALUES ('"+ str(data[0]) +"','"+str(data[1])+"','"+str(data[2])+"', '"+str(data[3])+"')"
     cursor.execute(insert_query, data)
     connection.commit()
     id = cursor.lastrowid
@@ -133,29 +127,38 @@ def changepos(string):
     new_string = " ".join(words)
     return new_string
 
-def compare_tuples(tuple1, tuple2):
-    """Compares two tuples at the second and fourth value.
+def compare_mode(oldData, newData):
+    oldPressMode = oldData[1]
+    newPressMode = newData[1]
 
-    Args:
-    tuple1: The first tuple.
-    tuple2: The second tuple.
+    return oldPressMode == newPressMode
 
-    Returns:
-    True if the second and fourth values of the tuples are equal, False otherwise.
-    """
+def compare_tuples(oldData, newData):
+    oldTuple = oldData[1:]
+    newTuple = newData[1:]
 
-    second_value_tuple1 = tuple1[1]
-    second_value_tuple2 = tuple2[1]
-    fourth_value_tuple1 = tuple1[3]
-    fourth_value_tuple2 = tuple2[3]
+    return oldTuple == newTuple
 
-    return second_value_tuple1 == second_value_tuple2 and fourth_value_tuple1 == fourth_value_tuple2
+def concatenateData(oldData, newData):    
+    oldTime = oldData[0]
+    oldPressMode = oldData[1]
+    die_name = oldData[4]
+    start_billet = oldData[3]
+    newTime = newData[0]
+    newPressMode = newData[1]
+    end_billet = newData[3]
+    
+    if oldPressMode == 0 and newPressMode == 1 :
+        pass
+    elif oldPressMode == 1 and newPressMode == 0:
+        return [(oldTime, newTime, die_name, end_billet-start_billet)]
 
 if __name__ == "__main__":
 
-    # main()
+    main()
+    # get_data()
     # queryData("SELECT * FROM `m_code` WHERE 1")
-    decimal_number = 16973
-    hexadecimal_number = decimal_to_hex_16(decimal_number)
-    ascii_string = hex_to_ascii(hexadecimal_number)
-    print(ascii_string)
+    # decimal_number = 16973
+    # hexadecimal_number = decimal_to_hex_16(decimal_number)
+    # ascii_string = hex_to_ascii(hexadecimal_number)
+    # print(ascii_string)   

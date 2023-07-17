@@ -1,5 +1,4 @@
 import time
-import csv
 import pymcprotocol
 import mysql.connector
 from datetime import datetime
@@ -153,9 +152,9 @@ def concatenateData(oldData, newData):
 
 if __name__ == "__main__":
 
-    # main()
+    main()
     # get_data()
-    queryData("SELECT * FROM `m_code` WHERE 1")
+    # queryData("SELECT * FROM `m_code` WHERE 1")
     # decimal_number = 16973
     # hexadecimal_number = decimal_to_hex_16(decimal_number)
     # ascii_string = hex_to_ascii(hexadecimal_number)

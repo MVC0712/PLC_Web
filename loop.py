@@ -1,4 +1,4 @@
-import time
+import time 
 import csv
 import pymcprotocol
 import mysql.connector
@@ -38,16 +38,18 @@ def main():
     while True:
         time.sleep(interval)
         new_data = get_data()
-        old_data = queryData("SELECT date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1")
+        old_data = queryData("SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H:%i') as date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1")
         compare_t = compare_tuples(old_data, new_data)
         if compare_t == False:
             insert_data_to_log(new_data)
         compare_m = compare_mode(old_data, new_data)
+        print(old_data)
         if compare_m == False:
             save_data = concatenateData(old_data, new_data)
+            print(save_data)
             insert_data_to_web(save_data)
 
-        print(save_data)
+        # print(save_data)
 
 def connect_to_mysql(host="localhost", port=3306, user="root", password="", database="extrusion"):
     connection = mysql.connector.connect(
@@ -120,12 +122,12 @@ def insert_space(string):
 
 def changepos(string):
     words = string.split(" ")
-    first_word = words[0]
-    second_word = words[1]
-    words[0] = second_word
-    words[1] = first_word
-
-    return words
+    word = words[len(words) - 1]
+    words.remove(word)
+    words.insert(0, word)
+    new_string = " ".join(words)
+    print(string +" : "+ new_string)
+    return new_string
 
 def compare_mode(oldData, newData):
     oldPressMode = oldData[1]
@@ -149,9 +151,9 @@ def concatenateData(oldData, newData):
     end_billet = newData[3]
     
     if oldPressMode == 0 and newPressMode == 1 :
-        return [(oldTime, newTime, "start", end_billet-start_billet)]
+        return (oldTime, newTime, "start", end_billet-start_billet)
     elif oldPressMode == 1 and newPressMode == 0:
-        return [(oldTime, newTime, die_name, end_billet-start_billet)]
+        return (oldTime, newTime, die_name, end_billet-start_billet)
 
 if __name__ == "__main__":
 

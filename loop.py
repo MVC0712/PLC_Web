@@ -1,13 +1,11 @@
 import time 
-import csv
 import pymcprotocol
 import mysql.connector
 from datetime import datetime
-import random
 
 def get_data():
     now = datetime.now()
-    date_time = now.strftime("%Y/%m/%d %H:%M:00")
+    date_time = now.strftime("%Y/%m/%d %H:%M:%S")
     
     pymc3e = pymcprotocol.Type3E()
     pymc3e.connect("192.168.1.2", 10000)
@@ -33,25 +31,28 @@ def listToString(list):
     return str
 
 def main():
-    interval = 5
+    interval = 30
     new_data = get_data()
     while True:
+        now = datetime.now()
+        date_now = now.strftime("%Y/%m/%d %H:%M:%S")
         time.sleep(interval)
         new_data = get_data()
-        old_data = queryData("SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H:%i') as date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1")
-        compare_t = compare_tuples(old_data, new_data)
-        if compare_t == False:
-            insert_data_to_log(new_data)
-        compare_m = compare_mode(old_data, new_data)
-        print(old_data)
+        insert_data_to_log(new_data)
+        sql1 = "SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H') as date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1"
+        old_data = queryData(sql1)
+        sql2 = "SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H:%i') as date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log WHERE die_name = '" + str(old_data[4]) + "' AND DATEDIFF('" + date_now + "', '" + str(old_data[0]) + "') = 0 ORDER BY date_time ASC LIMIT 1"
+        start_data = queryData(sql2)
+        # compare_t = compare_tuples(old_data, new_data)
+        # if compare_t == False:
+        #     insert_data_to_log(new_data)
+        compare_m = compare_mode(start_data, new_data)
         if compare_m == False:
-            save_data = concatenateData(old_data, new_data)
-            print(save_data)
+            save_data = concatenateData(start_data, new_data)
             insert_data_to_web(save_data)
+        print([start_data, new_data, save_data])
 
-        # print(save_data)
-
-def connect_to_mysql(host="localhost", port=3306, user="root", password="", database="extrusion"):
+def connect_to_mysql(host="10.163.49.34", port=3306, user="webuser", password="", database="extrusion"):
     connection = mysql.connector.connect(
         host=host,
         port=port,
@@ -66,33 +67,27 @@ def queryData(sql_query):
     cursor = connection.cursor()
     cursor.execute(sql_query)
     results = cursor.fetchall()
-    # for row in results:
-    #     print(row)
     connection.close()
     return(results[0])
 
 def insert_data_to_log(data):
     connection = connect_to_mysql()
     cursor = connection.cursor()
-    # data = [("John Doe", 30), ("Jane Doe", 25)]
     insert_query = "INSERT INTO t_plc_web_log (date_time, press_mode, die_change, billet_counter, die_name, alarm) VALUES ('"+ str(data[0]) +"','"+str(data[1])+"','"+str(data[2])+"', '"+str(data[3])+"', '"+str(data[4])+"', '"+str(data[5])+"')"   
     cursor.execute(insert_query)
     connection.commit()
     id = cursor.lastrowid
     cursor.close()
-
     return id
 
 def insert_data_to_web(data):
     connection = connect_to_mysql()
     cursor = connection.cursor()
-    # data = [("John Doe", 30), ("Jane Doe", 25)]
     insert_query = "INSERT INTO t_plc_web (start_time, end_time, die_name, billet_quantity) VALUES ('"+ str(data[0]) +"','"+str(data[1])+"','"+str(data[2])+"', '"+str(data[3])+"')"
     cursor.execute(insert_query)
     connection.commit()
     id = cursor.lastrowid
     cursor.close()
-
     return id
 
 def decimal_to_hex_16(decimal_number):
@@ -126,19 +121,16 @@ def changepos(string):
     words.remove(word)
     words.insert(0, word)
     new_string = " ".join(words)
-    print(string +" : "+ new_string)
     return new_string
 
 def compare_mode(oldData, newData):
     oldPressMode = oldData[1]
     newPressMode = newData[1]
-
     return oldPressMode == newPressMode
 
 def compare_tuples(oldData, newData):
     oldTuple = oldData[1:]
     newTuple = newData[1:]
-
     return oldTuple == newTuple
 
 def concatenateData(oldData, newData):    
@@ -149,18 +141,10 @@ def concatenateData(oldData, newData):
     newTime = newData[0]
     newPressMode = newData[1]
     end_billet = newData[3]
-    
     if oldPressMode == 0 and newPressMode == 1 :
         return (oldTime, newTime, "start", end_billet-start_billet)
     elif oldPressMode == 1 and newPressMode == 0:
         return (oldTime, newTime, die_name, end_billet-start_billet)
 
 if __name__ == "__main__":
-
     main()
-    # get_data()
-    # queryData("SELECT * FROM `m_code` WHERE 1")
-    # decimal_number = 16973
-    # hexadecimal_number = decimal_to_hex_16(decimal_number)
-    # ascii_string = hex_to_ascii(hexadecimal_number)
-    # print(ascii_string)   

@@ -120,12 +120,12 @@ def insert_space(string):
 
 def changepos(string):
     words = string.split(" ")
-    random_index = random.randint(0, len(words) - 1)
-    word = words[random_index]
-    words.remove(word)
-    words.insert(0, word)
-    new_string = " ".join(words)
-    return new_string
+    first_word = words[0]
+    second_word = words[1]
+    words[0] = second_word
+    words[1] = first_word
+
+    return words
 
 def compare_mode(oldData, newData):
     oldPressMode = oldData[1]

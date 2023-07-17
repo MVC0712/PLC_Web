@@ -1,4 +1,5 @@
 import time
+import csv
 import pymcprotocol
 import mysql.connector
 from datetime import datetime
@@ -16,11 +17,11 @@ def get_data():
     die_name = pymc3e.batchread_wordunits(headdevice="R395", readsize=5)
     alarm = pymc3e.batchread_wordunits(headdevice="D320", readsize=1)
     
-    press_mode = press_mode[1:-1]
-    die_change = die_change[1:-1]
-    billet_counter = billet_counter[1:-1]
+    press_mode = press_mode[0]
+    die_change = die_change[0]
+    billet_counter = billet_counter[0]
     die_name = listToString(die_name)
-    alarm = alarm[1:-1]
+    alarm = alarm[0]
 
     return (date_time, press_mode, die_change, billet_counter, die_name, alarm)
 
@@ -32,7 +33,7 @@ def listToString(list):
     return str
 
 def main():
-    interval = 30
+    interval = 5
     new_data = get_data()
     while True:
         time.sleep(interval)
@@ -45,6 +46,8 @@ def main():
         if compare_m == False:
             save_data = concatenateData(old_data, new_data)
             insert_data_to_web(save_data)
+
+        print(save_data)
 
 def connect_to_mysql(host="localhost", port=3306, user="root", password="", database="extrusion"):
     connection = mysql.connector.connect(
@@ -70,8 +73,8 @@ def insert_data_to_log(data):
     connection = connect_to_mysql()
     cursor = connection.cursor()
     # data = [("John Doe", 30), ("Jane Doe", 25)]
-    insert_query = "INSERT INTO t_plc_web_log (date_time, press_mode, die_change, billet_counter, die_name, alarm) VALUES (%s, %s, %s, %s, %s, %s)"
-    cursor.execute(insert_query, data)
+    insert_query = "INSERT INTO t_plc_web_log (date_time, press_mode, die_change, billet_counter, die_name, alarm) VALUES ('"+ str(data[0]) +"','"+str(data[1])+"','"+str(data[2])+"', '"+str(data[3])+"', '"+str(data[4])+"', '"+str(data[5])+"')"   
+    cursor.execute(insert_query)
     connection.commit()
     id = cursor.lastrowid
     cursor.close()
@@ -82,8 +85,8 @@ def insert_data_to_web(data):
     connection = connect_to_mysql()
     cursor = connection.cursor()
     # data = [("John Doe", 30), ("Jane Doe", 25)]
-    insert_query = "INSERT INTO t_plc_web (start_time, end_time, die_name, billet_quantity) VALUES (%s, %s, %s, %s)"
-    cursor.execute(insert_query, data)
+    insert_query = "INSERT INTO t_plc_web (start_time, end_time, die_name, billet_quantity) VALUES ('"+ str(data[0]) +"','"+str(data[1])+"','"+str(data[2])+"', '"+str(data[3])+"')"
+    cursor.execute(insert_query)
     connection.commit()
     id = cursor.lastrowid
     cursor.close()
@@ -146,7 +149,7 @@ def concatenateData(oldData, newData):
     end_billet = newData[3]
     
     if oldPressMode == 0 and newPressMode == 1 :
-        pass
+        return [(oldTime, newTime, "start", end_billet-start_billet)]
     elif oldPressMode == 1 and newPressMode == 0:
         return [(oldTime, newTime, die_name, end_billet-start_billet)]
 
@@ -158,4 +161,4 @@ if __name__ == "__main__":
     # decimal_number = 16973
     # hexadecimal_number = decimal_to_hex_16(decimal_number)
     # ascii_string = hex_to_ascii(hexadecimal_number)
-    # print(ascii_string)
+    # print(ascii_string)   

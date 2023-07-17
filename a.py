@@ -1,8 +1,10 @@
-def concatenateData(tuple1, tuple2):
-    concatenated_tuple = tuple1 + tuple2
-    first_data1 = concatenated_tuple[0]
-    first_data2 = concatenated_tuple[len(tuple1)]
+def changepos(string):
+    words = string.split(" ")
+    first_word = words[0]
+    second_word = words[1]
+    words[0] = second_word
+    words[1] = first_word
+    print(words)
+    return words
 
-    print([(first_data1, first_data2)])
-
-concatenateData((1, 2, 3), (4, 5, 6))
+changepos("aa bb")

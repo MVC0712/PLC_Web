@@ -10,18 +10,18 @@ def get_data():
     pymc3e = pymcprotocol.Type3E()
     pymc3e.connect("192.168.1.2", 10000)
     press_mode = pymc3e.batchread_bitunits(headdevice="M310", readsize=1)
-    die_change = pymc3e.batchread_bitunits(headdevice="Y1045", readsize=1)
+    all_pump_on = pymc3e.batchread_bitunits(headdevice="M3292", readsize=1)
     billet_counter = pymc3e.batchread_wordunits(headdevice="D7000", readsize=1)
     die_name = pymc3e.batchread_wordunits(headdevice="R395", readsize=5)
     alarm = pymc3e.batchread_wordunits(headdevice="D320", readsize=1)
     
     press_mode = press_mode[0]
-    die_change = die_change[0]
+    all_pump_on = all_pump_on[0]
     billet_counter = billet_counter[0]
     die_name = listToString(die_name)
     alarm = alarm[0]
 
-    return (date_time, press_mode, die_change, billet_counter, die_name, alarm)
+    return (date_time, press_mode, all_pump_on, billet_counter, die_name, alarm)
 
 def listToString(list):
     str = ""
@@ -39,9 +39,9 @@ def main():
         time.sleep(interval)
         new_data = get_data()
         insert_data_to_log(new_data)
-        sql1 = "SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H') as date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1"
+        sql1 = "SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H:%i') as date_time, press_mode, all_pump_on, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1"
         old_data = queryData(sql1)
-        sql2 = "SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H:%i') as date_time, press_mode, die_change, billet_counter, die_name, alarm FROM t_plc_web_log WHERE die_name = '" + str(old_data[4]) + "' AND DATEDIFF('" + date_now + "', '" + str(old_data[0]) + "') = 0 ORDER BY date_time ASC LIMIT 1"
+        sql2 = "SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H:%i') as date_time, press_mode, all_pump_on, billet_counter, die_name, alarm FROM t_plc_web_log WHERE die_name = '" + str(old_data[4]) + "' AND DATEDIFF('" + date_now + "', '" + str(old_data[0]) + "') = 0 ORDER BY date_time ASC LIMIT 1"
         start_data = queryData(sql2)
         # compare_t = compare_tuples(old_data, new_data)
         # if compare_t == False:
@@ -73,7 +73,7 @@ def queryData(sql_query):
 def insert_data_to_log(data):
     connection = connect_to_mysql()
     cursor = connection.cursor()
-    insert_query = "INSERT INTO t_plc_web_log (date_time, press_mode, die_change, billet_counter, die_name, alarm) VALUES ('"+ str(data[0]) +"','"+str(data[1])+"','"+str(data[2])+"', '"+str(data[3])+"', '"+str(data[4])+"', '"+str(data[5])+"')"   
+    insert_query = "INSERT INTO t_plc_web_log (date_time, press_mode, all_pump_on, billet_counter, die_name, alarm) VALUES ('"+ str(data[0]) +"','"+str(data[1])+"','"+str(data[2])+"', '"+str(data[3])+"', '"+str(data[4])+"', '"+str(data[5])+"')"   
     cursor.execute(insert_query)
     connection.commit()
     id = cursor.lastrowid
@@ -136,15 +136,15 @@ def compare_tuples(oldData, newData):
 def concatenateData(oldData, newData):    
     oldTime = oldData[0]
     oldPressMode = oldData[1]
-    die_name = oldData[4]
     start_billet = oldData[3]
     newTime = newData[0]
     newPressMode = newData[1]
+    new_die_name = newData[4]
     end_billet = newData[3]
-    if oldPressMode == 0 and newPressMode == 1 :
-        return (oldTime, newTime, "start", end_billet-start_billet)
+    if oldPressMode == 0 and newPressMode == 1:
+        return (oldTime, newTime, "Start: "+ new_die_name, end_billet-start_billet)
     elif oldPressMode == 1 and newPressMode == 0:
-        return (oldTime, newTime, die_name, end_billet-start_billet)
+        return (oldTime, newTime, "Stop: "+ new_die_name, end_billet-start_billet)
 
 if __name__ == "__main__":
     main()

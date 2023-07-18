@@ -31,26 +31,30 @@ def listToString(list):
     return str
 
 def main():
-    interval = 30
+    interval = 10
     new_data = get_data()
     while True:
-        now = datetime.now()
-        date_now = now.strftime("%Y/%m/%d %H:%M:%S")
-        time.sleep(interval)
-        new_data = get_data()
-        insert_data_to_log(new_data)
-        sql1 = "SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H:%i') as date_time, press_mode, all_pump_on, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1"
-        old_data = queryData(sql1)
-        sql2 = "SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H:%i') as date_time, press_mode, all_pump_on, billet_counter, die_name, alarm FROM t_plc_web_log WHERE die_name = '" + str(old_data[4]) + "' AND DATEDIFF('" + date_now + "', '" + str(old_data[0]) + "') = 0 ORDER BY date_time ASC LIMIT 1"
-        start_data = queryData(sql2)
-        # compare_t = compare_tuples(old_data, new_data)
-        # if compare_t == False:
-        #     insert_data_to_log(new_data)
-        compare_m = compare_mode(start_data, new_data)
-        if compare_m == False:
-            save_data = concatenateData(start_data, new_data)
-            insert_data_to_web(save_data)
-        print([start_data, new_data, save_data])
+        try:
+            now = datetime.now()
+            date_now = now.strftime("%Y/%m/%d %H:%M:%S")
+            time.sleep(interval)
+            new_data = get_data()
+            insert_data_to_log(new_data)
+            sql1 = "SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H:%i') as date_time, press_mode, all_pump_on, billet_counter, die_name, alarm FROM t_plc_web_log ORDER BY date_time DESC LIMIT 1"
+            old_data = queryData(sql1)
+            sql2 = "SELECT DATE_FORMAT(date_time, '%Y-%m-%d %H:%i') as date_time, press_mode, all_pump_on, billet_counter, die_name, alarm FROM t_plc_web_log WHERE die_name = '" + str(old_data[4]) + "' AND DATEDIFF('" + date_now + "', '" + str(old_data[0]) + "') = 0 ORDER BY date_time ASC LIMIT 1"
+            start_data = queryData(sql2)
+            # compare_t = compare_tuples(old_data, new_data)
+            # if compare_t == False:
+            #     insert_data_to_log(new_data)
+            compare_m = compare_mode(start_data, new_data)
+            if compare_m == False:
+                save_data = concatenateData(start_data, new_data)
+                insert_data_to_web(save_data)
+            print([start_data, new_data, save_data])
+        except Exception as e:
+            print(e)
+            pass
 
 def connect_to_mysql(host="10.163.49.34", port=3306, user="webuser", password="", database="extrusion"):
     connection = mysql.connector.connect(

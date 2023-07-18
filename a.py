@@ -1,9 +1,5 @@
 import time 
-import csv
-import pymcprotocol
-import mysql.connector
 from datetime import datetime
-import random
 
 def get_data():    
     die_name = [16973,12341,67,0,0]
@@ -19,11 +15,11 @@ def listToString(list):
     return str
 
 def main():
-    interval = 30
-    new_data = get_data()
+    interval = 5
     while True:
         time.sleep(interval)
-        new_data = get_data()
+        changepos("aa bb")
+
 
 def decimal_to_hex_16(decimal_number):
     hexadecimal_number = ""
